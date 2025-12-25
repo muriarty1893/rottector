@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freshness & Type Detector - AI</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-green: #2D6A4F; 
+            --highlight-green: #D8F3DC; 
+            --status-online: #2ecc71;
+            --status-offline: #e74c3c;
+            --status-checking: #f1c40f;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff; 
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            color: #000000; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        body.loading {
+            overflow: hidden;
+            justify-content: center;
+        }
+
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff; 
+            z-index: 9999;
+        }
+        #loader-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #percentage-counter {
+            position: absolute;
+            top: 65%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000000; 
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        #main-content {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .container { 
+            background: #ffffff;
+            border: 1px solid #e0e0e0; 
+            padding: 40px; 
+            border-radius: 24px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.05); 
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-online .status-dot {
+            background-color: var(--status-online);
+            box-shadow: 0 0 0 rgba(46, 204, 113, 0.4);
+            animation: pulse-green 2s infinite;
+        }
+        .status-online { color: #1f6f4a; border-color: #d1e7dd; background: #d1e7dd; }
+
+        .status-offline .status-dot { background-color: var(--status-offline); }
+        .status-offline { color: #842029; border-color: #f5c2c7; background: #f8d7da; }
+
+        .status-checking .status-dot {
+            background-color: var(--status-checking);
+            animation: blink 1s infinite;
+        }
+        .status-checking { color: #664d03; border-color: #ffecb5; background: #fff3cd; }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        
+        h1 { 
+            font-family: 'Poppins', sans-serif;
+            color: #000000; 
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle { 
+            color: #333333; 
+            margin-bottom: 30px; 
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc; 
+            border-radius: 16px;
+            padding: 40px 20px;
+            cursor: pointer;
+            background-color: #fafafa; 
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            background-color: #f0f0f0;
+            border-color: #000; 
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary-green); 
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .upload-area p { margin: 0; font-size: 18px; font-weight: 700; color: #000000; }
+        .upload-area span { font-size: 14px; color: #666; margin-top: 8px; display: block; word-wrap: break-word; max-width: 90%; }
+        #imageInput { display: none; }
+
+        .upload-btn { 
+            background: #000000; color: white; padding: 16px 40px; border: none; border-radius: 50px; cursor: pointer; font-size: 16px; font-weight: 600; font-family: 'Poppins', sans-serif; transition: all 0.3s; margin-top: 25px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); display: inline-flex; align-items: center; gap: 10px;
+        }
+        .upload-btn:hover { background: #333; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+        .upload-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        #result-area { margin-top: 40px; display: none; animation: fadeIn 0.5s ease-out; border-top: 1px solid #eee; padding-top: 30px; }
+        .main-result-card { background: #ffffff; border: 2px solid var(--primary-green); border-radius: 20px; padding: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(45, 106, 79, 0.15); }
+        .main-result-card h4 { font-size: 18px; margin: 0 0 15px 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .result-img { width: 100%; height: auto; border-radius: 12px; display: block; }
+        .original-ref-wrapper { max-width: 60%; margin: 0 auto; opacity: 0.8; transition: opacity 0.3s; }
+        .original-ref-wrapper:hover { opacity: 1; }
+        .original-ref-card { background: #fafafa; border: 1px dashed #ccc; border-radius: 16px; padding: 15px; }
+        .original-ref-card h4 { font-size: 14px; color: #666; margin: 0 0 10px 0; font-weight: 500; }
+        .badge { font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .badge-ai { background: var(--primary-green); color: white; }
+        .badge-original { background: #e0e0e0; color: #555; font-size: 10px; padding: 3px 8px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #loading { display: none; color: #000; font-weight: 500; margin-top: 20px; }
+
+        .system-architecture { margin-top: 50px; text-align: center; border-top: 1px solid #eee; padding-top: 40px; }
+        .system-architecture h3 { color: #000000; font-family: 'Poppins', sans-serif; margin-bottom: 10px; }
+        .architecture-desc { color: #666; font-size: 14px; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .diagram-container { background: #ffffff; border: 1px solid #eee; border-radius: 20px; padding: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.03); overflow: hidden; }
+        .diagram-img { width: 100%; height: auto; border-radius: 16px; display: block; transition: transform 0.3s ease; }
+        .diagram-img:hover { transform: scale(1.02); }
+        .footer { margin-top: 40px; font-size: 13px; color: #999; font-weight: 500; }
+    </style>
+</head>
+<body class="loading">
+
+<div id="loader">
+    <canvas id="loader-canvas"></canvas>
+    <div id="percentage-counter">0%</div>
+</div>
+
+<div id="main-content">
+    <div class="container">
+        
+        <div id="serverStatus" class="status-badge status-checking">
+            <span class="status-dot"></span>
+            <span id="statusText">Connecting to Server...</span>
+        </div>
+
+        <h1>Classify & Check Freshness 🍎🥦</h1>
+        <p class="subtitle">AI instantly identifies the fruit/vegetable type and determines if it is <strong>Fresh</strong> or <strong>Rotten</strong>.</p>
+
+        <label for="imageInput" class="upload-area" id="uploadArea">
+            <div class="upload-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+            </div>
+            <p>Drag & drop fruit or vegetable image</p>
+            <span>or click to browse files</span>
+        </label>
+        <input type="file" id="imageInput" accept="image/*">
+        
+        <button id="analyzeBtn" class="upload-btn" onclick="analyzeImage()" disabled>
+            <span>Identify & Check Status</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <div id="loading">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-right: 8px;">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+            Identifying object and checking freshness...
+        </div>
+        <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+
+        <div id="result-area">
+            <h3>Analysis Report</h3>
+            <div class="main-result-card">
+                <h4><span class="badge badge-ai">AI RESULT</span> Detected Status</h4>
+                <img id="resultImage" class="result-img" src="" alt="AI Processed Image">
+            </div>
+            <div class="original-ref-wrapper">
+                <div class="original-ref-card">
+                    <h4><span class="badge badge-original">ORIGINAL</span> Reference Image</h4>
+                    <img id="originalPreview" class="result-img" src="" alt="Original Upload">
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Murat Eker • <a href="https://github.com/muriarty1893" target="_blank" rel="noopener noreferrer">github.com/muriarty1893</a>
+        </div> 
+    </div>
+</div>
+
+<script>
+    const BASE_URL = "https://lavina-snippier-daxton.ngrok-free.dev"; 
+    const API_URL = BASE_URL + "/predict";
+
+    const statusBadge = document.getElementById('serverStatus');
+    const statusText = document.getElementById('statusText');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+
+    async function checkServerStatus() {
+        try {
+            const response = await fetch(BASE_URL, { 
+                method: 'GET',
+                headers: { "ngrok-skip-browser-warning": "true" } 
+            });
+
+            if (response.ok || response.status === 405) {
+                setServerOnline();
+            } else {
+                setServerOffline();
+            }
+        } catch (error) {
+            console.error("Server check failed:", error);
+            setServerOffline();
+        }
+    }
+
+    function setServerOnline() {
+        statusBadge.className = "status-badge status-online";
+        statusText.textContent = "Server Online";
+        analyzeBtn.disabled = false;
+        analyzeBtn.style.opacity = "1";
+    }
+
+    function setServerOffline() {
+        statusBadge.className = "status-badge status-offline";
+        statusText.textContent = "Server Offline";
+        analyzeBtn.disabled = true; 
+        analyzeBtn.style.opacity = "0.5";
+    }
+
+    setTimeout(checkServerStatus, 4500);
+
+    const uploadArea = document.getElementById('uploadArea');
+    const imageInput = document.getElementById('imageInput');
+
+    if (uploadArea && imageInput) {
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        function highlight(e) { uploadArea.classList.add('dragover'); }
+        function unhighlight(e) { uploadArea.classList.remove('dragover'); }
+        function handleDrop(e) { const dt = e.dataTransfer; const files = dt.files; updateInputAndUI(files); }
+
+        function updateInputAndUI(files) {
+            imageInput.files = files;
+            const fileName = files.length > 0 ? files[0].name : 'or click to browse files';
+            const primaryText = files.length > 0 ? 'File Selected!' : 'Drag & drop fruit or vegetable image';
+            if(files.length > 0) {
+                uploadArea.style.borderColor = "#000";
+                uploadArea.style.backgroundColor = "#f0f0f0";
+            }
+            uploadArea.querySelector('p').textContent = primaryText;
+            uploadArea.querySelector('span').textContent = fileName;
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { document.body.addEventListener(eventName, preventDefaults); });
+        ['dragenter', 'dragover'].forEach(eventName => { uploadArea.addEventListener(eventName, highlight); });
+        ['dragleave', 'drop'].forEach(eventName => { uploadArea.addEventListener(eventName, unhighlight); });
+        uploadArea.addEventListener('drop', handleDrop);
+        imageInput.addEventListener('change', () => { updateInputAndUI(imageInput.files); });
+    }
+
+    async function analyzeImage() {
+        const input = document.getElementById('imageInput');
+        const resultArea = document.getElementById('result-area');
+        const resultImage = document.getElementById('resultImage');
+        const originalPreview = document.getElementById('originalPreview');
+        const loading = document.getElementById('loading');
+
+        if (input.files.length === 0) {
+            alert("Please drop an image or click to select one!");
+            return;
+        }
+
+        resultArea.style.display = "none";
+        loading.style.display = "block";
+
+        const objectUrl = URL.createObjectURL(input.files[0]);
+        originalPreview.src = objectUrl;
+
+        const formData = new FormData();
+        formData.append("file", input.files[0]);
+
+        try {
+            const response = await fetch(API_URL, { method: "POST", body: formData });
+            if (!response.ok) throw new Error("Server error!");
+            const data = await response.json();
+            
+            resultImage.src = "data:image/jpeg;base64," + data.image;
+            loading.style.display = "none";
+            resultArea.style.display = "block";
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Connection Error! Checking status...");
+            checkServerStatus(); 
+            loading.style.display = "none";
+        }
+    }
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+<script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('loader-canvas'), antialias: true });
+    renderer.setClearColor(0xffffff); 
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambientLight);
+
+    function createTextTexture(text, heightScale = 1.0, fontWeight = 900) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 4096; canvas.height = 2048; 
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        const textToRender = text + " "; 
+        let fontSize = 100;
+        context.font = `${fontWeight} ${fontSize}px 'Inter', sans-serif`;
+        const metrics = context.measureText(textToRender);
+        const scaleFactor = canvas.width / metrics.width;
+        const finalFontSize = fontSize * scaleFactor;
+        context.font = `${fontWeight} ${finalFontSize}px 'Inter', sans-serif`;
+        context.fillStyle = '#000000'; 
+        context.textAlign = 'center'; context.textBaseline = 'middle';
+        context.save(); 
+        context.translate(canvas.width / 2, canvas.height / 2);
+        context.scale(1, heightScale);
+        context.fillText(textToRender, 0, 0);
+        context.restore(); 
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.ClampToEdgeWrapping; 
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        texture.needsUpdate = true;
+        return texture;
+    }
+
+    function createTextSphere(text, heightScale, fontWeight) {
+        const group = new THREE.Group(); 
+        const textTexture = createTextTexture(text, heightScale, fontWeight);
+        const textMaterial = new THREE.MeshBasicMaterial({ map: textTexture, transparent: true, side: THREE.DoubleSide, depthWrite: false, opacity: 1 });
+        const textSphere = new THREE.Mesh(new THREE.SphereGeometry(1.5, 64, 64), textMaterial);
+        group.add(textSphere);
+        group.userData.textTexture = textTexture;
+        return group;
+    }
+
+    const masterGroup = new THREE.Group();
+    masterGroup.rotation.x = Math.PI / 24; 
+    scene.add(masterGroup);
+    const globe1 = createTextSphere('TYPE    &    FRESHNESS    DETECTOR    FOR    FRUIT    ', 2, 700); 
+    const globe2 = createTextSphere('UPLOAD IMAGE      •      IDENTIFY OBJECT      •      CHECK FRESHNESS      •      ROTTEN OR FRESH?      •     ', 1, 400);
+    masterGroup.add(globe1, globe2);
+
+    const mouse = { x: 0, y: 0 };
+    const target = { x: 0, y: 0 };
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; 
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        globe1.userData.textTexture.offset.x += 0.0004; 
+        globe2.userData.textTexture.offset.x += 0.0008; 
+        target.x += (mouse.y * 0.4 - target.x) * 0.05;
+        target.y += (mouse.x * 0.4 - target.y) * 0.05;
+        const r = 6;
+        const phi = Math.PI / 2 - target.x - 0.2; 
+        const theta = target.y;
+        camera.position.x = r * Math.sin(phi) * Math.cos(theta);
+        camera.position.y = r * Math.cos(phi);
+        camera.position.z = r * Math.sin(phi) * Math.sin(theta);
+        camera.lookAt(0, 0, 0);
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    globe1.position.set(1.5, -15, 0); 
+    globe2.position.set(-1.5, -15, 0); 
+
+    const introTl = gsap.timeline({ delay: 0.2 });
+    introTl.to(globe1.position, { x: 0, y: 0.35, duration: 2.5, ease: 'power4.out' });
+    introTl.to(globe2.position, { x: 0, y: -0.15, duration: 1.8, ease: 'power4.out' }, '-=2.0'); 
+
+    const counter = { value: 0 };
+    const percentageDiv = document.getElementById('percentage-counter');
+    gsap.to(counter, {
+        value: 100,
+        duration: 4, 
+        ease: 'none',
+        onUpdate: () => { percentageDiv.textContent = `${Math.round(counter.value)}%`; }
+    });
+
+    setTimeout(() => { runExitAnimation(); }, 4000); 
+
+    function runExitAnimation() {
+        const exitTl = gsap.timeline();
+        exitTl.to('#percentage-counter', { opacity: 0, duration: 0.3 }, 0);
+        exitTl.to(globe2.position, { x: -1.5, y: -15, duration: 1.0, ease: 'power4.in' }, 0);
+        exitTl.to(globe1.position, { x: 1.5, y: -15, duration: 1.3, ease: 'power4.in' }, 0.05);
+        exitTl.to('#loader', { opacity: 0, duration: 0.8, onComplete: () => {
+                document.getElementById('loader').style.display = 'none';
+                document.body.classList.remove('loading');
+        }}, 0.8);
+        exitTl.fromTo('#main-content', { opacity: 0, y: 20, filter: 'blur(10px)' }, { opacity: 1, display: 'block', y: 0, filter: 'blur(0px)', duration: 1, ease: "power2.out"}, '-=0.4');
+    }
+    
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+
+</body>
+</html>
