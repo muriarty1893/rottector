@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 print("🔄 Modeller Yükleniyor... Lütfen bekleyin.")
+# Dosya yollarını kendi bilgisayarına göre kontrol etmeyi unutma
 model_eye = YOLO("/home/murat/Desktop/bitirme/models/yolov8_fruit_v13.pt")   
 model_brain = YOLO("/home/murat/Desktop/bitirme/models/final_model.pt")      
 print("✅ Modeller Hazır! API Başlatılıyor...")
@@ -33,6 +34,7 @@ def smart_predict_process(img_array):
     final_detections = []
     matched_brain_indices = set()
 
+    # --- EŞLEŞTİRME MANTIĞI (Burada değişiklik yok) ---
     for i, box_eye in enumerate(results_eye.boxes.xyxy.cpu().numpy()):
         final_label = "Nesne"
         final_color = (200, 200, 200)
@@ -72,17 +74,28 @@ def smart_predict_process(img_array):
             else: color = (255, 0, 0)
             final_detections.append((box_brain, label, color))
 
+    # --- ÇİZİM KISMI (Burayı Düzenledik) ---
     plot_img = img_array.copy()
     for box, label, color in final_detections:
         x1, y1, x2, y2 = map(int, box)
+        
+        # 1. Ana çerçeveyi çiz
         cv2.rectangle(plot_img, (x1, y1), (x2, y2), color, 3)
         
+        # Yazı ayarları
         text_scale = 0.8 if label != "Nesne" else 0.5
         thickness = 2 if label != "Nesne" else 1
         
-        (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
-        cv2.rectangle(plot_img, (x1, y1 - 25), (x1 + w, y1), color, -1)
-        cv2.putText(plot_img, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness)
+        # Yazının boyutunu hesapla
+        (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
+        
+        # 2. Yazı arka plan kutusunu çiz (Kutunun İÇİNE)
+        # y1'den başlayıp aşağı doğru (y1 + h + padding) çiziyoruz.
+        cv2.rectangle(plot_img, (x1, y1), (x1 + w, y1 + h + 10), color, -1)
+        
+        # 3. Yazıyı yaz (Kutunun İÇİNE)
+        # Yazının alt noktası y1 + h + 5 olacak şekilde ayarlıyoruz.
+        cv2.putText(plot_img, label, (x1, y1 + h + 5), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness)
 
     return plot_img
 
