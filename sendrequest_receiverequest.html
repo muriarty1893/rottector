@@ -18,6 +18,13 @@
             --status-checking: #f1c40f;
         }
 
+        /* SCROLLBAR GİZLEME KODLARI BAŞLANGICI */
+        /* Chrome, Safari ve Opera için */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        /* SCROLLBAR GİZLEME KODLARI BİTİŞİ */
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #ffffff; 
@@ -29,6 +36,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+
+            /* Firefox, IE ve Edge için Scrollbar Gizleme */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
 
         body.loading {
@@ -65,9 +76,17 @@
         #main-content {
             display: none;
             width: 100%;
-            max-width: 800px;
+            max-width: 1200px; 
             margin-top: 40px;
             margin-bottom: 40px;
+        }
+
+        .app-layout {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+            flex-wrap: wrap;
         }
 
         .container { 
@@ -78,6 +97,62 @@
             box-shadow: 0 15px 40px rgba(0,0,0,0.05); 
             transition: transform 0.3s ease;
             position: relative;
+            flex: 1;
+            min-width: 300px;
+            max-width: 700px; 
+        }
+
+        .info-panel {
+            background: #ffffff;
+            border: 1px solid #f0f0f0;
+            padding: 25px;
+            border-radius: 20px;
+            width: 200px;
+            text-align: left;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+        }
+
+        .info-panel h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            color: var(--primary-green);
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .info-list li {
+            font-size: 14px;
+            color: #555;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .info-list li:last-child { border-bottom: none; }
+
+        @media (max-width: 900px) {
+            .app-layout {
+                flex-direction: column;
+                align-items: center;
+            }
+            .info-panel {
+                width: 100%;
+                max-width: 400px;
+                order: 2; 
+            }
+            .container {
+                order: 1;
+            }
         }
 
         .status-badge {
@@ -209,63 +284,95 @@
 </div>
 
 <div id="main-content">
-    <div class="container">
+    
+    <div class="app-layout">
         
-        <div id="serverStatus" class="status-badge status-checking">
-            <span class="status-dot"></span>
-            <span id="statusText">Connecting to Server...</span>
+        <div class="info-panel">
+            <h3> Vegetables</h3>
+            <ul class="info-list">
+                <li>Tomato</li>
+                <li>Potato</li>
+                <li>Cucumber</li>
+                <li>Bell Pepper</li>
+                <li>Carrot</li>
+                <li>Chili Pepper</li>
+            </ul>
         </div>
 
-        <h1>Classify & Check Freshness 🍎🥦</h1>
-        <p class="subtitle">AI instantly identifies the fruit/vegetable type and determines if it is <strong>Fresh</strong> or <strong>Rotten</strong>.</p>
+        <div class="container">
+            
+            <div id="serverStatus" class="status-badge status-checking">
+                <span class="status-dot"></span>
+                <span id="statusText">Connecting to Server...</span>
+            </div>
 
-        <label for="imageInput" class="upload-area" id="uploadArea">
-            <div class="upload-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
+            <h1>Classify & Check Freshness</h1>
+            <p class="subtitle">AI instantly identifies the fruit/vegetable type and determines if it is <strong>Fresh</strong> or <strong>Rotten</strong>.</p>
+
+            <label for="imageInput" class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <p>Drag & drop fruit or vegetable image</p>
+                <span>or click to browse files</span>
+            </label>
+            <input type="file" id="imageInput" accept="image/*">
+            
+            <button id="analyzeBtn" class="upload-btn" onclick="analyzeImage()" disabled>
+                <span>Identify & Check Status</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
-            </div>
-            <p>Drag & drop fruit or vegetable image</p>
-            <span>or click to browse files</span>
-        </label>
-        <input type="file" id="imageInput" accept="image/*">
-        
-        <button id="analyzeBtn" class="upload-btn" onclick="analyzeImage()" disabled>
-            <span>Identify & Check Status</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-        </button>
+            </button>
 
-        <div id="loading">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-right: 8px;">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-            </svg>
-            Identifying object and checking freshness...
-        </div>
-        <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
-
-        <div id="result-area">
-            <h3>Analysis Report</h3>
-            <div class="main-result-card">
-                <h4><span class="badge badge-ai">AI RESULT</span> Detected Status</h4>
-                <img id="resultImage" class="result-img" src="" alt="AI Processed Image">
+            <div id="loading">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-right: 8px;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+                Identifying object and checking freshness...
             </div>
-            <div class="original-ref-wrapper">
-                <div class="original-ref-card">
-                    <h4><span class="badge badge-original">ORIGINAL</span> Reference Image</h4>
-                    <img id="originalPreview" class="result-img" src="" alt="Original Upload">
+            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+
+            <div id="result-area">
+                <h3>Analysis Report</h3>
+                <div class="main-result-card">
+                    <h4><span class="badge badge-ai">AI RESULT</span> Detected Status</h4>
+                    <img id="resultImage" class="result-img" src="" alt="AI Processed Image">
+                </div>
+                <div class="original-ref-wrapper">
+                    <div class="original-ref-card">
+                        <h4><span class="badge badge-original">ORIGINAL</span> Reference Image</h4>
+                        <img id="originalPreview" class="result-img" src="" alt="Original Upload">
+                    </div>
                 </div>
             </div>
+
+            <div class="footer">
+                Murat Eker • <a href="https://github.com/muriarty1893" target="_blank" rel="noopener noreferrer">github.com/muriarty1893</a>
+            </div> 
         </div>
 
-        <div class="footer">
-            Murat Eker • <a href="https://github.com/muriarty1893" target="_blank" rel="noopener noreferrer">github.com/muriarty1893</a>
-        </div> 
-    </div>
-</div>
+        <div class="info-panel">
+            <h3> Fruits</h3>
+            <ul class="info-list">
+                <li>Apple</li>
+                <li>Banana</li>
+                <li>Orange</li>
+                <li>Grape</li>
+                <li>Strawberry</li>
+                <li>Pomegranate</li>
+                <li>Mango</li>
+                <li>Guava</li>
+                <li>Jujube</li>
+                
+            </ul>
+        </div>
+
+    </div> </div>
 
 <script>
     const BASE_URL = "https://lavina-snippier-daxton.ngrok-free.dev"; 
@@ -428,7 +535,7 @@
     const masterGroup = new THREE.Group();
     masterGroup.rotation.x = Math.PI / 24; 
     scene.add(masterGroup);
-    const globe1 = createTextSphere('TYPE    &    FRESHNESS    DETECTOR    FOR    FRUIT    ', 2, 700); 
+    const globe1 = createTextSphere('TYPE    &    FRESHNESS    DETECTOR    FOR    FRUIT    ', 1.8, 700); 
     const globe2 = createTextSphere('UPLOAD IMAGE      •      IDENTIFY OBJECT      •      CHECK FRESHNESS      •      ROTTEN OR FRESH?      •     ', 1, 400);
     masterGroup.add(globe1, globe2);
 
